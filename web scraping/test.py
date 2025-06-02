@@ -51,9 +51,13 @@ for game in games:
     game_page_contents = game_page_response.text
     game_page_doc = BeautifulSoup(game_page_contents, 'html.parser')
     game_page_genre_elem = game_page_doc.find('div', {'id' : 'genresAndManufacturer'})
-    genre_ = game_page_genre_elem.find_all('a')
+    genre_ = game_page_genre_elem.find('span').find_all('a') if game_page_genre_elem else 'N/A'
+    genre_list = []
+    
     for genres in genre_:
-        print(genres.text)
+        game_page_genre = genres.text.strip() if genre_ else 'N/A'
+        genre_list.append(game_page_genre)
+    print(genre_list)
     
     # genre_list = []
     

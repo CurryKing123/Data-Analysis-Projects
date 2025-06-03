@@ -17,7 +17,7 @@ new_trending_games = soup.find_all('a', {'data-gpnav' : 'item'})
 #create scraper component to save results as a CSV file
 with open('games_topsellers.csv', mode = 'w', newline = '', encoding = 'utf-8') as file:
     writer = csv.writer(file)
-    writer.writerow(['Name', 'Pubished Date', 'Original Price', 'Discount Price', 'Reviews', 'Tags'])
+    writer.writerow(['Name', 'Pubished Date', 'Original Price', 'Discount Price', 'Reviews', 'Genres'])
     
     #loop through each game and extract info
     for game in new_trending_games:
@@ -39,20 +39,21 @@ with open('games_topsellers.csv', mode = 'w', newline = '', encoding = 'utf-8') 
         match = re.search(r'(\d+,*\d*)\s+user reviews', reviews_html)
         reviews_number = match.group(1).replace(',', '') if match else 'N/A'
         
-        #find all tags for each game
+        #find all genres for each game
         game_page_url = game.get("href")
         game_page_response = requests.get(game_page_url)
         game_page_contents = game_page_response.text
         game_page_doc = BeautifulSoup(game_page_contents, 'html.parser')
-        game_page_tags_elem = game_page_doc.find_all('a', {'class' : 'app_tag'})
-        tag_list = []
-        #add found tags into a list
-        for tags in game_page_tags_elem:
-            game_page_tags = tags.text.strip() if game_page_tags_elem else 'N/A'
-            tag_list.append(game_page_tags)
+        
+        if game_page_doc.find('div', {'id' : 'genresAndManufacturer'}):    
+            game_page_genre_elem = game_page_doc.find('div', {'id' : 'genresAndManufacturer'})
+            genre_ = game_page_genre_elem.find('span').find('a')
+        else:
+            genre_ = ''
+        game_genre = genre_.text.strip() if genre_ else 'N/A'
         
         #write the extracted information to the CSV file
-        writer.writerow([name, published_date, original_price, discount_price, reviews_number, tag_list])
+        writer.writerow([name, published_date, original_price, discount_price, reviews_number, game_genre])
         
 
 # List of search filters
@@ -61,7 +62,7 @@ search_filters = ['topsellers', 'mostplayed', 'newreleases', 'upcomingreleases']
 # Create a CSV file to store the scraped data
 with open('games_all.csv', mode='w', newline='', encoding='utf-8') as file:
     writer = csv.writer(file)
-    writer.writerow(['Name', 'Published_Year', 'Original Price', 'Discount Price', 'Reviews', 'Search Query', 'Tags'])
+    writer.writerow(['Name', 'Published_Year', 'Original Price', 'Discount Price', 'Reviews', 'Search Query', 'Genre'])
 
     # Loop through each search query
     for filter in search_filters:
@@ -112,20 +113,21 @@ with open('games_all.csv', mode='w', newline='', encoding='utf-8') as file:
                 match = re.search(r'(\d+,*\d*)\s+user reviews', reviews_html)
                 reviews_number = match.group(1).replace(',', '') if match else 'N/A'
                 
-                #get tags from games
+                #get genres from games
                 game_page_url = game.get("href")
                 game_page_response = requests.get(game_page_url)
                 game_page_contents = game_page_response.text
                 game_page_doc = BeautifulSoup(game_page_contents, 'html.parser')
-                game_page_tags_elem = game_page_doc.find_all('a', {'class' : 'app_tag'})
-                tag_list = []
-                #add found tags into a list
-                for tags in game_page_tags_elem:
-                    game_page_tags = tags.text.strip() if game_page_tags_elem else 'N/A'
-                    tag_list.append(game_page_tags)
+                
+                if game_page_doc.find('div', {'id' : 'genresAndManufacturer'}):    
+                    game_page_genre_elem = game_page_doc.find('div', {'id' : 'genresAndManufacturer'})
+                    genre_ = game_page_genre_elem.find('span').find('a')
+                else:
+                    genre_ = ''
+                game_genre = genre_.text.strip() if genre_ else 'N/A'
 
                 # Write the extracted information to the CSV file
-                writer.writerow([name, year, original_price, discount_price, reviews_number, filter, tag_list])
+                writer.writerow([name, year, original_price, discount_price, reviews_number, filter, game_genre])
 
                 # Increment the line count
                 line_count += 1
@@ -168,14 +170,15 @@ def extract_game_info(game):
     game_page_response = requests.get(game_page_url)
     game_page_contents = game_page_response.text
     game_page_doc = BeautifulSoup(game_page_contents, 'html.parser')
-    game_page_tags_elem = game_page_doc.find_all('a', {'class' : 'app_tag'})
-    tag_list = []
     
-    for tags in game_page_tags_elem:
-        game_page_tags = tags.text.strip() if game_page_tags_elem else 'N/A'
-        tag_list.append(game_page_tags)
+    if game_page_doc.find('div', {'id' : 'genresAndManufacturer'}):    
+        game_page_genre_elem = game_page_doc.find('div', {'id' : 'genresAndManufacturer'})
+        genre_ = game_page_genre_elem.find('span').find('a')
+    else:
+        genre_ = ''
+    game_genre = genre_.text.strip() if genre_ else 'N/A'
 
-    return name, year, original_price, discount_price, reviews_number, tag_list
+    return name, year, original_price, discount_price, reviews_number, game_genre
 
 # Create a function that scrapes the webpage
 def scrape_page(url, filter, writer):
@@ -207,16 +210,16 @@ def main(search_queries=["topsellers"]):
 
     with open('games_all.csv', mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(['Name', 'Year', 'Original Price', 'Discount Price', 'Reviews', 'Tags', 'Search Filter'])
+        writer.writerow(['Name', 'Year', 'Original Price', 'Discount Price', 'Reviews', 'Genre', 'Search Filter'])
 
         for filter in search_filters:
             url = f'https://store.steampowered.com/search/?filter={filter}'
             # Invoking the scrape page function
             scrape_page(url, filter, writer)
-    remove_brackets_from_csv('games_all.csv', 'games_all_new.csv')
+    remove_brackets_and_quotes_from_csv('games_all.csv', 'games_all_new.csv')
 
 #remove brackets from csv file
-def remove_brackets_from_csv(input_file, output_file):
+def remove_brackets_and_quotes_from_csv(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as infile, \
             open(output_file, 'w', newline='', encoding='utf-8') as outfile:
         reader = csv.reader(infile)

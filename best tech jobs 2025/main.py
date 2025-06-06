@@ -15,4 +15,4 @@ jobs = soup.find('div', {'class': 'blog-detail-content'})
 
 job_titles = jobs.find_all('h3')
 for job in job_titles:
-    print(job.text)
+    print(job.next_sibling.next_sibling.text)

@@ -77,3 +77,27 @@ def Most_Viewed_Video():
         next_page_token = response.get('nextPageToken')
 
     print(len(video_ids))
+
+    all_video_info = []
+
+    request = youtube.videos().list(
+        part='snippet,contentDetails,statistics',
+        id = video_ids[0:5]
+    )
+    response = request.execute()
+
+    for video in response['items']:
+        data = {'snippet' : ['channelTitle', 'title', 'description', 'tags', 'publishedAt'],
+                'statistics': ['viewCount', 'likeCount', 'favoriteCount', 'commentCount'],
+                'contentDetails' : ['duration', 'definition', 'caption']}
+    
+        video_info = {}
+        video_info['video_id'] = video['id']
+
+        for k in data.keys():
+            for v in data[k]:
+                video_info[v] = video[k][v]
+        
+        all_video_info.append(video_info)
+
+    print(all_video_info)
